@@ -55,7 +55,7 @@ class _PartyChatOverlayState extends State<PartyChatOverlay> {
         id: '1',
         senderName: 'Rayhan',
         senderAvatar: '',
-        rank: WibukuRank.gold,
+        rank: BleachRank.shikai,
         message: 'Halo semua, anime nya seru banget!',
         timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
       ),

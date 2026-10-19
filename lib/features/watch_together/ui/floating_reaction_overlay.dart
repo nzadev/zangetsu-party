@@ -12,7 +12,7 @@ class FloatingReactionOverlay extends StatefulWidget {
   }
 
   @override
-  State<FloatingReactionOverlayState> createState() => FloatingReactionOverlayState();
+  State<FloatingReactionOverlay> createState() => FloatingReactionOverlayState();
 }
 
 class FloatingReactionOverlayState extends State<FloatingReactionOverlay> {
