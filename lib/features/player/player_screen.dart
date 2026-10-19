@@ -49,6 +49,7 @@ import '../../core/cast/cast_controller.dart';
 import '../../core/cast/cast_proxy.dart';
 import '../watch_together/watch_together_controller.dart';
 import '../watch_together/ui/room_panel.dart';
+import '../watch_together/ui/floating_reaction_overlay.dart';
 import '../../core/app_mode.dart';
 import '../../core/tv/tv_focusable.dart';
 import '../settings/settings_screen.dart';
@@ -277,6 +278,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // Stored so we can remove it in dispose() — the singleton outlives this screen.
   late final VoidCallback _roomListener;
   bool _attached = false; // true only after _wireRoom() runs
+  int _lastEmoteMsgCount = 0;
 
   // Position sampled down to whole seconds. The always-mounted Skip / Next-episode
   // pills only care about second-granularity, but the raw position stream fires
@@ -1143,8 +1145,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _wireRoom(WatchTogetherController room) {
     if (!WatchTogetherController.isEnabled) return;
+    _lastEmoteMsgCount = room.messages.length;
     _roomListener = () {
       _c.roomRole = room.role;
+      if (room.messages.length > _lastEmoteMsgCount) {
+        for (var i = _lastEmoteMsgCount; i < room.messages.length; i++) {
+          final m = room.messages[i];
+          if (m.text.startsWith('EMOTE:')) {
+            final emote = m.text.replaceFirst('EMOTE:', '');
+            FloatingReactionOverlay.of(context)?.triggerEmote(emote);
+          }
+        }
+        _lastEmoteMsgCount = room.messages.length;
+      }
       if (mounted) setState(() {});
     };
     room.addListener(_roomListener);
@@ -2550,7 +2563,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ),
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: BlocConsumer<PlayerCubit, PlayerState>(
+        body: FloatingReactionOverlay(
+          child: BlocConsumer<PlayerCubit, PlayerState>(
           bloc: _c,
           // Nothing ever played: this episode is a dead end, so say so in a
           // dialog and hand the viewer back where they came from rather than
@@ -3305,6 +3319,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             );
           },
+        ),
         ),
       ),
     );

@@ -10,7 +10,7 @@ import 'ui/party_player_route.dart';
 import 'watch_room_service.dart';
 
 class WatchTogetherController extends ChangeNotifier {
-  static const bool isEnabled = false;
+  static const bool isEnabled = true;
 
   WatchTogetherController(this._svc);
   final WatchRoomService _svc;
@@ -70,8 +70,23 @@ class WatchTogetherController extends ChangeNotifier {
   String? _viewerStageKey;
   bool _viewerPlayerUp = false;
 
-  String get _uid => sl<AuthCubit>().state.user?.id ?? '';
-  String get _uname => sl<AuthCubit>().state.user?.name ?? 'Guest';
+  static String? _cachedGuestId;
+  String get _uid {
+    final user = sl<AuthCubit>().state.user;
+    if (user != null && user.id.isNotEmpty) return user.id;
+    _cachedGuestId ??= 'guest_${DateTime.now().millisecondsSinceEpoch % 1000000}';
+    return _cachedGuestId!;
+  }
+
+  String get _uname {
+    final user = sl<AuthCubit>().state.user;
+    if (user != null && user.name.isNotEmpty) return user.name;
+    return 'Shinigami_${_uid.replaceAll("guest_", "")}';
+  }
+
+  void sendReaction(String emoji) {
+    sendChat('EMOTE:$emoji');
+  }
   bool get isHost => role == RoomRole.host;
   bool get canControl => isHost;
   int get _now => DateTime.now().millisecondsSinceEpoch;

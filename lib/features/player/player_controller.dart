@@ -43,6 +43,7 @@ import '../../core/zmode/playback_resolver.dart';
 import '../../core/zmode/source_matcher.dart';
 import '../../core/zmode/zmode_ids.dart';
 import '../watch_together/model/room_state.dart';
+import '../gamification/wibuku_exp_service.dart';
 import 'color_profiles.dart';
 import 'shader_presets.dart';
 import 'subtitle_font_service.dart';
@@ -481,6 +482,7 @@ class PlayerCubit extends Cubit<PlayerState> {
   int _userSeekMs = 0;
   int _lastResumeSeekMs = 0; // throttle for the resume re-seek (anti-thrash)
   int _lastHistoryMs = 0; // throttle: last wall-clock ms we wrote progress
+  int _lastExpMs = 0; // throttle: Gamifikasi Bleach Reiatsu EXP
   int _gen = 0; // bumped per open; async continuations bail if superseded
   /// Live progressive subscription ([_openProgressive]), so leaving the player
   /// or moving episodes drops late sweep events at the source. Null whenever
@@ -1167,6 +1169,15 @@ class PlayerCubit extends Cubit<PlayerState> {
           _persist();
         }
 
+        // Gamifikasi Bleach: tambah EXP Reiatsu tiap 30 detik nonton
+        if (_startedThisSource && now - _lastExpMs >= 30000) {
+          _lastExpMs = now;
+          final rankedUp = WibukuExpService.instance.addPlaybackExp(5);
+          if (rankedUp) {
+            _toast('⚡ REIATSU AWAKENED! Pangkat naik ke ${WibukuExpService.instance.currentRank.title}!', duration: const Duration(seconds: 4));
+          }
+        }
+
         // Seamless binge: once we pass ~85% of the episode, resolve the NEXT
         // episode's stream in the background so advancing is instant. Fires at
         // most once per current episode (re-armed when the index changes).
@@ -1239,7 +1250,14 @@ class PlayerCubit extends Cubit<PlayerState> {
     // (covers HLS streams that report no duration, so the 92% check never fires).
     _subs.add(
       player.stream.completed.listen((done) {
-        if (done) _maybeScrobble(force: true);
+        if (done) {
+          _maybeScrobble(force: true);
+          final rankedUp = WibukuExpService.instance.addEpisodeCompletedExp();
+          _toast('⚡ Episode Selesai! +100 Reiatsu & +10 Soul Orbs!', duration: const Duration(seconds: 3));
+          if (rankedUp) {
+            _toast('⚡ REIATSU AWAKENED! Pangkat naik ke ${WibukuExpService.instance.currentRank.title}!', duration: const Duration(seconds: 4));
+          }
+        }
       }),
     );
     _subs.add(player.stream.error.listen((e) => _onPlaybackError(e)));

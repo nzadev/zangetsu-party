@@ -1,9 +1,9 @@
 // lib/features/home/party_room_banner_card.dart
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../gamification/model/wibuku_rank.dart';
 import '../gamification/wibuku_exp_service.dart';
-import '../watch_together/ui/party_room_screen.dart';
+import '../watch_together/ui/watch_party_lobby_screen.dart';
+import '../watch_together/ui/watch_together_sheet.dart';
 
 class PartyRoomBannerCard extends StatelessWidget {
   const PartyRoomBannerCard({super.key});
@@ -36,29 +36,30 @@ class PartyRoomBannerCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               const Text(
-                'Masukkan 6-digit kode room dari teman kamu:',
+                'Masukkan kode room dari teman kamu untuk nobar:',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextField(
                 controller: codeController,
-                textAlign: TextAlign.center,
+                textCapitalization: TextCapitalization.characters,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
                   letterSpacing: 4,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
                 decoration: InputDecoration(
-                  hintText: 'CONTOH: 849201',
-                  hintStyle: const TextStyle(
-                    color: Colors.white24,
-                    fontSize: 14,
-                    letterSpacing: 1.5,
-                  ),
+                  hintText: 'CONTOH: 749201',
+                  hintStyle: const TextStyle(color: Colors.white30, letterSpacing: 2),
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.06),
                   border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(color: Colors.cyanAccent),
                   ),
@@ -90,11 +91,7 @@ class PartyRoomBannerCard extends StatelessWidget {
                         final code = codeController.text.trim();
                         if (code.isEmpty) return;
                         Navigator.of(ctx).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => PartyRoomScreen(roomCode: code),
-                          ),
-                        );
+                        joinWatchPartyByCode(context, code);
                       },
                       child: const Text('Masuk Room', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
@@ -109,11 +106,9 @@ class PartyRoomBannerCard extends StatelessWidget {
   }
 
   void _createNewParty(BuildContext context) {
-    // Generate random 6-digit code
-    final randomCode = (100000 + Random().nextInt(900000)).toString();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PartyRoomScreen(roomCode: randomCode),
+        builder: (_) => const WatchPartyLobbyScreen(),
       ),
     );
   }
@@ -125,6 +120,8 @@ class PartyRoomBannerCard extends StatelessWidget {
       builder: (context, _) {
         final service = WibukuExpService.instance;
         final rank = service.currentRank;
+        final progress = rank.progressToNext(service.currentExp);
+        final nextRank = rank.nextRank;
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -164,7 +161,7 @@ class PartyRoomBannerCard extends StatelessWidget {
                         CircleAvatar(radius: 3, backgroundColor: Colors.redAccent),
                         SizedBox(width: 5),
                         Text(
-                          'NOBAR ROOM',
+                          'NOBAR REAL-TIME',
                           style: TextStyle(
                             color: Colors.redAccent,
                             fontSize: 10,
@@ -180,7 +177,20 @@ class PartyRoomBannerCard extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(rank.badgeAsset, width: 20, height: 20, fit: BoxFit.contain),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          rank.badgeAsset,
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.shield,
+                            size: 20,
+                            color: Colors.cyanAccent,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         rank.title,
@@ -191,9 +201,27 @@ class PartyRoomBannerCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '${service.currentExp} EXP',
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.auto_awesome, color: Colors.amber, size: 12),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${service.currentGems}',
+                              style: const TextStyle(
+                                color: Colors.amber,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -203,7 +231,7 @@ class PartyRoomBannerCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               const Text(
-                'Nonton Anime & Film Bareng Teman!',
+                'Nonton Bareng & Sync Video Real-Time!',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -211,9 +239,21 @@ class PartyRoomBannerCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Sinkronkan pemutaran video, live chat, dan lempar stiker emoji melayang.',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              Text(
+                nextRank != null
+                    ? 'Reiatsu: ${service.currentExp} / ${nextRank.minExp} EXP (${nextRank.title})'
+                    : 'Reiatsu Maksimal: ${service.currentExp} EXP',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: Colors.white12,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(rank.glowColorValue)),
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -231,7 +271,7 @@ class PartyRoomBannerCard extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.add_circle_outline, size: 18),
                       label: const Text(
-                        'Buat Room',
+                        'Buat Party',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       onPressed: () => _createNewParty(context),

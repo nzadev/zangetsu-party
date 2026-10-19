@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../model/room_state.dart';
 import '../watch_together_controller.dart';
+import 'floating_reaction_overlay.dart';
+import '../../gamification/wibuku_exp_service.dart';
 import '../../../l10n/l10n.dart';
 
 /// Opens a bottom sheet listing room participants. The host sees a "Give
@@ -605,6 +607,27 @@ class _RoomChatPanelState extends State<RoomChatPanel> {
                       ),
               ),
 
+              // Quick Reaction Emoji Bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ['🔥', '❤️', '😂', '😱', '🍿', '👏'].map((e) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        widget.controller.sendReaction(e);
+                        FloatingReactionOverlay.of(context)?.triggerEmote(e);
+                        WibukuExpService.instance.addExp(2);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Text(e, style: const TextStyle(fontSize: 20)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
               // Input row.
               Padding(
                 padding: const EdgeInsets.fromLTRB(8, 6, 4, 8),
@@ -657,6 +680,20 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (message.text.startsWith('EMOTE:')) {
+      final emoji = message.text.replaceFirst('EMOTE:', '');
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message.name, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            const SizedBox(width: 4),
+            Text('bereaksi $emoji', style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(

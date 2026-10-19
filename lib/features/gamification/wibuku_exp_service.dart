@@ -35,7 +35,7 @@ class WibukuExpService extends ChangeNotifier {
   }
 
   /// Tambah EXP/Reiatsu dari aktivitas nonton
-  void addExp(int amount, {BuildContext? context, bool isParty = false}) {
+  bool addExp(int amount, {BuildContext? context, bool isParty = false}) {
     final oldRank = currentRank;
     final bonus = isParty ? (amount * 1.5).round() : amount;
     _exp += bonus;
@@ -43,9 +43,27 @@ class WibukuExpService extends ChangeNotifier {
     notifyListeners();
 
     final newRank = currentRank;
-    if (newRank.index > oldRank.index && context != null && context.mounted) {
-      _showRankUpDialog(context, oldRank, newRank);
+    final rankedUp = newRank.index > oldRank.index;
+    if (rankedUp) {
+      _gems += 30; // Bonus Soul Orbs
+      _box?.put(_gemsKey, _gems);
+      if (context != null && context.mounted) {
+        _showRankUpDialog(context, oldRank, newRank);
+      }
     }
+    return rankedUp;
+  }
+
+  /// Panggilan berkala dari player (misal tiap 30 detik nonton)
+  bool addPlaybackExp(int amount) {
+    return addExp(amount);
+  }
+
+  /// Panggilan saat episode selesai
+  bool addEpisodeCompletedExp() {
+    _gems += 10;
+    _box?.put(_gemsKey, _gems);
+    return addExp(100);
   }
 
   void _showRankUpDialog(BuildContext context, BleachRank oldRank, BleachRank newRank) {

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/di/injector.dart';
-import '../../auth/auth_cubit.dart';
+
 import '../model/room_state.dart';
 import '../watch_together_controller.dart';
 import 'host_choosing_screen.dart';
@@ -29,7 +29,7 @@ class _WatchPartyLobbyScreenState extends State<WatchPartyLobbyScreen> {
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
-  bool _isLoggedIn() => sl<AuthCubit>().state.user != null;
+  bool _isLoggedIn() => true;
 
   void _showNotLoggedIn() {
     ScaffoldMessenger.of(context).showSnackBar(
